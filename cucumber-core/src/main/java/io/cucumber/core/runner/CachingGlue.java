@@ -277,10 +277,6 @@ final class CachingGlue implements Glue {
             stepDefinitionsHashCode = stepDefinitionsHashCodeNew;
         }
 
-        stepDefinitionsChanged = true; // TODO comment this line to make build
-                                       // fail, e.g. due to
-                                       // io.cucumber.core.plugin.PrettyFormatterTest.should_handle_scenario_outline
-
         // TODO: separate prepared and unprepared glue into different classes
         if (parameterTypesDefinitionsChanged) {
             // parameters changed from the previous scenario => re-register them
@@ -367,7 +363,7 @@ final class CachingGlue implements Glue {
                     throw new DuplicateStepDefinitionException(previous, stepDefinition);
                 }
                 stepDefinitionsByPattern.put(coreStepDefinition.getExpression().getSource(), coreStepDefinition);
-                emitStepDefined(coreStepDefinition);
+                emitStepDefined(coreStepDefinition); // FIXME if step definition are cached, the StepDefinedEvent is not emitted anymore, so io.cucumber.core.runtime.RuntimeTest#generates_events_for_glue_and_scenario_scoped_glue fails
             });
         }
 
@@ -515,19 +511,22 @@ final class CachingGlue implements Glue {
     }
 
     void removeScenarioScopedGlue() {
-        removeScenarioScopedGlue(beforeHooks);
-        removeScenarioScopedGlue(beforeStepHooks);
-        removeScenarioScopedGlue(afterHooks);
-        removeScenarioScopedGlue(afterStepHooks);
-        removeScenarioScopedGlue(stepDefinitions);
-        removeScenarioScopedGlue(dataTableTypeDefinitions);
-        removeScenarioScopedGlue(docStringTypeDefinitions);
-        removeScenarioScopedGlue(parameterTypeDefinitions);
-        removeScenarioScopedGlue(defaultParameterTransformers);
-        removeScenarioScopedGlue(defaultDataTableEntryTransformers);
-        removeScenarioScopedGlue(defaultDataTableCellTransformers);
+        boolean dirty = false;
+        dirty |= removeScenarioScopedGlue(beforeHooks);
+        dirty |= removeScenarioScopedGlue(beforeStepHooks);
+        dirty |= removeScenarioScopedGlue(afterHooks);
+        dirty |= removeScenarioScopedGlue(afterStepHooks);
+        dirty |= removeScenarioScopedGlue(stepDefinitions);
+        dirty |= removeScenarioScopedGlue(dataTableTypeDefinitions);
+        dirty |= removeScenarioScopedGlue(docStringTypeDefinitions);
+        dirty |= removeScenarioScopedGlue(parameterTypeDefinitions);
+        dirty |= removeScenarioScopedGlue(defaultParameterTransformers);
+        dirty |= removeScenarioScopedGlue(defaultDataTableEntryTransformers);
+        dirty |= removeScenarioScopedGlue(defaultDataTableCellTransformers);
 
-        stepDefinitionsByPattern.clear();
+        if (dirty) {
+            stepDefinitionsByPattern.clear();
+        }
 
     }
 
