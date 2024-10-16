@@ -249,32 +249,32 @@ final class CachingGlue implements Glue {
         int docStringTypeDefinitionsHashCodeNew = docStringTypeDefinitions.hashCode();
         int stepDefinitionsHashCodeNew = stepDefinitions.hashCode();
         boolean firstTime = stepTypeRegistry == null;
-        boolean languageChanged = firstTime || !locale.equals(this.locale);
+        boolean languageChanged = !locale.equals(this.locale);
         boolean parameterTypesDefinitionsChanged = parameterTypeDefinitionsHashCode != parameterTypeDefinitionsHashCodeNew
                 || parameterTypeDefinitionsHashCode == 0;
         boolean docStringTypeDefinitionsChanged = docStringTypeDefinitionsHashCode != docStringTypeDefinitionsHashCodeNew
-                ||
-                docStringTypeDefinitionsHashCode == 0;
+                || docStringTypeDefinitionsHashCode == 0;
         boolean dataTableTypeDefinitionsChanged = dataTableTypeDefinitionsHashCode != dataTableTypeDefinitionsHashCodeNew
-                ||
-                dataTableTypeDefinitionsHashCode == 0;
+                || dataTableTypeDefinitionsHashCode == 0;
         boolean stepDefinitionsChanged = stepDefinitionsHashCodeNew != stepDefinitionsHashCode
                 || stepDefinitionsHashCode == 0;
         if (firstTime || languageChanged ||
-                parameterTypesDefinitionsChanged || stepDefinitionsChanged ||
-                dataTableTypeDefinitionsChanged || docStringTypeDefinitionsChanged) {
+                parameterTypesDefinitionsChanged || dataTableTypeDefinitionsChanged ||
+                docStringTypeDefinitionsChanged || stepDefinitionsChanged) {
             // conditions changed => invalidate the glue cache
             this.locale = locale;
             stepTypeRegistry = new StepTypeRegistry(locale);
             stepExpressionFactory = new StepExpressionFactory(stepTypeRegistry, bus);
             parameterTypesDefinitionsChanged = true;
-            stepDefinitionsChanged = true;
             dataTableTypeDefinitionsChanged = true;
             docStringTypeDefinitionsChanged = true;
+            stepDefinitionsChanged = true;
             parameterTypeDefinitionsHashCode = parameterTypeDefinitionsHashCodeNew;
             dataTableTypeDefinitionsHashCode = dataTableTypeDefinitionsHashCodeNew;
             docStringTypeDefinitionsHashCode = docStringTypeDefinitionsHashCodeNew;
             stepDefinitionsHashCode = stepDefinitionsHashCodeNew;
+            stepDefinitionsByPattern.clear();
+            stepPatternByStepText.clear();
         }
 
         // TODO: separate prepared and unprepared glue into different classes
@@ -363,7 +363,12 @@ final class CachingGlue implements Glue {
                     throw new DuplicateStepDefinitionException(previous, stepDefinition);
                 }
                 stepDefinitionsByPattern.put(coreStepDefinition.getExpression().getSource(), coreStepDefinition);
-                emitStepDefined(coreStepDefinition); // FIXME if step definition are cached, the StepDefinedEvent is not emitted anymore, so io.cucumber.core.runtime.RuntimeTest#generates_events_for_glue_and_scenario_scoped_glue fails
+                emitStepDefined(coreStepDefinition); // FIXME if step definition
+                                                     // are cached, the
+                                                     // StepDefinedEvent is not
+                                                     // emitted anymore, so
+                                                     // io.cucumber.core.runtime.RuntimeTest#generates_events_for_glue_and_scenario_scoped_glue
+                                                     // fails
             });
         }
 
