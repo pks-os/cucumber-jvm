@@ -87,6 +87,11 @@ final class CachingGlue implements Glue {
     private final EventBus bus;
     private StepTypeRegistry stepTypeRegistry;
     private Locale locale = null;
+    private int parameterTypeDefinitionsHashCode = 0;
+    private int stepDefinitionsHashCode = 0;
+    private int dataTableTypeDefinitionsHashCode = 0;
+    private int docStringTypeDefinitionsHashCode = 0;
+    private StepExpressionFactory stepExpressionFactory = null;
 
     CachingGlue(EventBus bus) {
         this.bus = bus;
@@ -237,12 +242,7 @@ final class CachingGlue implements Glue {
     StepTypeRegistry getStepTypeRegistry() {
         return stepTypeRegistry;
     }
-    int parameterTypeDefinitionsHashCode = 0;
-    int stepDefinitionsHashCode = 0;
-    int dataTableTypeDefinitionsHashCode = 0;
-    int docStringTypeDefinitionsHashCode = 0;
 
-    StepExpressionFactory stepExpressionFactory = null;
     void prepareGlue(Locale locale) throws DuplicateStepDefinitionException {
         int parameterTypeDefinitionsHashCodeNew = parameterTypeDefinitions.hashCode();
         int dataTableTypeDefinitionsHashCodeNew = dataTableTypeDefinitions.hashCode();
