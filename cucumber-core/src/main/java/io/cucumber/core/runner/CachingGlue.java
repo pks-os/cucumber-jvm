@@ -20,15 +20,12 @@ import io.cucumber.core.stepexpression.StepExpression;
 import io.cucumber.core.stepexpression.StepExpressionFactory;
 import io.cucumber.core.stepexpression.StepTypeRegistry;
 import io.cucumber.cucumberexpressions.CucumberExpression;
-import io.cucumber.cucumberexpressions.DuplicateTypeNameException;
 import io.cucumber.cucumberexpressions.Expression;
 import io.cucumber.cucumberexpressions.ParameterByTypeTransformer;
 import io.cucumber.cucumberexpressions.ParameterType;
 import io.cucumber.cucumberexpressions.RegularExpression;
-import io.cucumber.datatable.DuplicateTypeException;
 import io.cucumber.datatable.TableCellByTypeTransformer;
 import io.cucumber.datatable.TableEntryByTypeTransformer;
-import io.cucumber.docstring.CucumberDocStringException;
 import io.cucumber.messages.types.Envelope;
 import io.cucumber.messages.types.Hook;
 import io.cucumber.messages.types.JavaMethod;
@@ -250,77 +247,44 @@ final class CachingGlue implements Glue {
         int stepDefinitionsHashCodeNew = stepDefinitions.hashCode();
         boolean firstTime = stepTypeRegistry == null;
         boolean languageChanged = !locale.equals(this.locale);
-        boolean parameterTypesDefinitionsChanged = parameterTypeDefinitionsHashCode != parameterTypeDefinitionsHashCodeNew
-                || parameterTypeDefinitionsHashCode == 0;
-        boolean docStringTypeDefinitionsChanged = docStringTypeDefinitionsHashCode != docStringTypeDefinitionsHashCodeNew
-                || docStringTypeDefinitionsHashCode == 0;
-        boolean dataTableTypeDefinitionsChanged = dataTableTypeDefinitionsHashCode != dataTableTypeDefinitionsHashCodeNew
-                || dataTableTypeDefinitionsHashCode == 0;
-        boolean stepDefinitionsChanged = stepDefinitionsHashCodeNew != stepDefinitionsHashCode
+        boolean dirtyCache = parameterTypeDefinitionsHashCode != parameterTypeDefinitionsHashCodeNew
+                || docStringTypeDefinitionsHashCode != docStringTypeDefinitionsHashCodeNew
+                || dataTableTypeDefinitionsHashCode != dataTableTypeDefinitionsHashCodeNew
+                || stepDefinitionsHashCode != stepDefinitionsHashCodeNew
+                || parameterTypeDefinitionsHashCode == 0
+                || docStringTypeDefinitionsHashCode == 0
+                || dataTableTypeDefinitionsHashCode == 0
                 || stepDefinitionsHashCode == 0;
         if (firstTime || languageChanged ||
-                parameterTypesDefinitionsChanged || dataTableTypeDefinitionsChanged ||
-                docStringTypeDefinitionsChanged || stepDefinitionsChanged) {
+                dirtyCache) {
             // conditions changed => invalidate the glue cache
             this.locale = locale;
             stepTypeRegistry = new StepTypeRegistry(locale);
             stepExpressionFactory = new StepExpressionFactory(stepTypeRegistry, bus);
-            parameterTypesDefinitionsChanged = true;
-            dataTableTypeDefinitionsChanged = true;
-            docStringTypeDefinitionsChanged = true;
-            stepDefinitionsChanged = true;
             parameterTypeDefinitionsHashCode = parameterTypeDefinitionsHashCodeNew;
             dataTableTypeDefinitionsHashCode = dataTableTypeDefinitionsHashCodeNew;
             docStringTypeDefinitionsHashCode = docStringTypeDefinitionsHashCodeNew;
             stepDefinitionsHashCode = stepDefinitionsHashCodeNew;
             stepDefinitionsByPattern.clear();
             stepPatternByStepText.clear();
+            dirtyCache = true;
         }
 
         // TODO: separate prepared and unprepared glue into different classes
-        if (parameterTypesDefinitionsChanged) {
+        if (dirtyCache) {
             // parameters changed from the previous scenario => re-register them
             parameterTypeDefinitions.forEach(ptd -> {
-                try {
-                    ParameterType<?> parameterType = ptd.parameterType();
-                    stepTypeRegistry.defineParameterType(parameterType);
-                    emitParameterTypeDefined(ptd);
-                } catch (DuplicateTypeNameException e) {
-                    // do nothing (intentionally)
-                    // FIXME catching an exception is a dirty hack, so this
-                    // should
-                    // be replaced by another mechanism (this would probably
-                    // require
-                    // to change StepTypeRegistry API)
-                }
+                ParameterType<?> parameterType = ptd.parameterType();
+                stepTypeRegistry.defineParameterType(parameterType);
+                emitParameterTypeDefined(ptd);
             });
-        }
-        if (dataTableTypeDefinitionsChanged) {
+
             dataTableTypeDefinitions.forEach(dtd -> {
-                try {
-                    stepTypeRegistry.defineDataTableType(dtd.dataTableType());
-                } catch (DuplicateTypeException e) {
-                    // do nothing (intentionally)
-                    // FIXME catching an exception is a dirty hack, so this
-                    // should
-                    // be replaced by another mechanism (this would probably
-                    // require
-                    // to change StepTypeRegistry API)
-                }
+                stepTypeRegistry.defineDataTableType(dtd.dataTableType());
             });
-        }
-        if (docStringTypeDefinitionsChanged) {
+
             docStringTypeDefinitions.forEach(dtd -> {
-                try {
-                    stepTypeRegistry.defineDocStringType(dtd.docStringType());
-                } catch (CucumberDocStringException e) {
-                    // do nothing (intentionally)
-                    // FIXME catching an exception is a dirty hack, so this
-                    // should
-                    // be replaced by another mechanism (this would probably
-                    // require
-                    // to change StepTypeRegistry API)
-                }
+                stepTypeRegistry.defineDocStringType(dtd.docStringType());
             });
         }
 
@@ -353,7 +317,7 @@ final class CachingGlue implements Glue {
         beforeHooks.forEach(this::emitHook);
         beforeStepHooks.forEach(this::emitHook);
 
-        if (stepDefinitionsChanged) {
+        if (dirtyCache) {
             stepDefinitions.forEach(stepDefinition -> {
                 StepExpression expression = stepExpressionFactory.createExpression(stepDefinition);
                 CoreStepDefinition coreStepDefinition = new CoreStepDefinition(bus.generateId(), stepDefinition,
@@ -363,12 +327,7 @@ final class CachingGlue implements Glue {
                     throw new DuplicateStepDefinitionException(previous, stepDefinition);
                 }
                 stepDefinitionsByPattern.put(coreStepDefinition.getExpression().getSource(), coreStepDefinition);
-                emitStepDefined(coreStepDefinition); // FIXME if step definition
-                                                     // are cached, the
-                                                     // StepDefinedEvent is not
-                                                     // emitted anymore, so
-                                                     // io.cucumber.core.runtime.RuntimeTest#generates_events_for_glue_and_scenario_scoped_glue
-                                                     // fails
+                emitStepDefined(coreStepDefinition);
             });
         }
 

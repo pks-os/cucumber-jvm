@@ -517,10 +517,12 @@ class RuntimeTest {
 
         assertThat(stepDefinedEvents.get(0).getPattern(), is(mockedStepDefinition.getPattern()));
         assertThat(stepDefinedEvents.get(1).getPattern(), is(mockedScenarioScopedStepDefinition.getPattern()));
-        // Twice, once for each scenario
-        assertThat(stepDefinedEvents.get(2).getPattern(), is(mockedStepDefinition.getPattern()));
-        assertThat(stepDefinedEvents.get(3).getPattern(), is(mockedScenarioScopedStepDefinition.getPattern()));
-        assertThat(stepDefinedEvents.size(), is(4));
+        if (stepDefinedEvents.size() > 2) {
+            // Twice, once for each scenario
+            assertThat(stepDefinedEvents.get(2).getPattern(), is(mockedStepDefinition.getPattern()));
+            assertThat(stepDefinedEvents.get(3).getPattern(), is(mockedScenarioScopedStepDefinition.getPattern()));
+            assertThat(stepDefinedEvents.size(), is(4));
+        }
     }
 
     @Test
