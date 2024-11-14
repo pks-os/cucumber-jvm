@@ -278,14 +278,8 @@ final class CachingGlue implements Glue {
                 stepTypeRegistry.defineParameterType(parameterType);
                 emitParameterTypeDefined(ptd);
             });
-
-            dataTableTypeDefinitions.forEach(dtd -> {
-                stepTypeRegistry.defineDataTableType(dtd.dataTableType());
-            });
-
-            docStringTypeDefinitions.forEach(dtd -> {
-                stepTypeRegistry.defineDocStringType(dtd.docStringType());
-            });
+            dataTableTypeDefinitions.forEach(dtd -> stepTypeRegistry.defineDataTableType(dtd.dataTableType()));
+            docStringTypeDefinitions.forEach(dtd -> stepTypeRegistry.defineDocStringType(dtd.docStringType()));
         }
 
         if (defaultParameterTransformers.size() == 1) {
@@ -487,11 +481,9 @@ final class CachingGlue implements Glue {
         dirty |= removeScenarioScopedGlue(defaultParameterTransformers);
         dirty |= removeScenarioScopedGlue(defaultDataTableEntryTransformers);
         dirty |= removeScenarioScopedGlue(defaultDataTableCellTransformers);
-
         if (dirty) {
             stepDefinitionsByPattern.clear();
         }
-
     }
 
     private boolean removeScenarioScopedGlue(Iterable<?> glues) {
